@@ -1,11 +1,10 @@
-//  Initial quote data or from localStorage
+//  Load or initialize quotes
 let quotes = JSON.parse(localStorage.getItem("quotes")) || [
   { text: "Believe you can and you're halfway there.", category: "Motivation" },
   { text: "To be or not to be, that is the question.", category: "Philosophy" },
   { text: "Life is what happens when you're busy making other plans.", category: "Life" }
 ];
 
-//  DOM References
 const quoteDisplay = document.getElementById('quoteDisplay');
 const categoryFilter = document.getElementById('categoryFilter');
 const newQuoteBtn = document.getElementById('newQuote');
@@ -26,7 +25,7 @@ function exportToJsonFile() {
   URL.revokeObjectURL(url);
 }
 
-//  Import quotes from JSON file
+//  Import quotes from JSON
 function importFromJsonFile(event) {
   const reader = new FileReader();
   reader.onload = function (e) {
@@ -44,7 +43,7 @@ function importFromJsonFile(event) {
   reader.readAsText(event.target.files[0]);
 }
 
-//  Populate category dropdown
+//  Populate dropdown with unique categories
 function populateCategories() {
   const uniqueCategories = Array.from(new Set(quotes.map(q => q.category)));
   const savedFilter = localStorage.getItem("selectedCategory");
@@ -66,7 +65,7 @@ function populateCategories() {
   filterQuotes();
 }
 
-//  Filter quotes by category
+//  Filter quotes based on selected category
 function filterQuotes() {
   const selectedCategory = categoryFilter.value;
   localStorage.setItem("selectedCategory", selectedCategory);
@@ -123,7 +122,7 @@ function addQuote() {
   alert("Quote added!");
 }
 
-//  Show notifications
+//  Notification
 function showNotification(msg, duration = 3000) {
   const notification = document.getElementById("notification");
   notification.textContent = msg;
@@ -131,50 +130,66 @@ function showNotification(msg, duration = 3000) {
   setTimeout(() => (notification.style.display = "none"), duration);
 }
 
-//  Server sync using JSONPlaceholder (mock)
-const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
+//  Simulated API endpoint
+const MOCK_API_URL = "https://jsonplaceholder.typicode.com/posts";
 
-async function syncWithServer() {
+//  Required: Fetch from server
+async function fetchQuotesFromServer() {
+  const response = await fetch(MOCK_API_URL);
+  const data = await response.json();
+  return data.slice(0, 5).map(post => ({
+    text: post.title,
+    category: "Server"
+  }));
+}
+
+//  Required: Post to server
+async function postQuotesToServer(newQuotes) {
+  const response = await fetch(MOCK_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(newQuotes)
+  });
+  const result = await response.json();
+  console.log("Posted to server:", result);
+}
+
+//  Required: Full sync function
+async function syncQuotes() {
+  showNotification(" Syncing with server...");
+
   try {
-    showNotification("🔄 Syncing quotes with server...");
-    const response = await fetch(SERVER_URL);
-    const serverData = await response.json();
-
-    const serverQuotes = serverData.slice(0, 5).map(post => ({
-      text: post.title,
-      category: "Server"
-    }));
-
+    const serverQuotes = await fetchQuotesFromServer();
     let conflictsResolved = 0;
-    const merged = [...quotes];
 
     serverQuotes.forEach(serverQuote => {
       const exists = quotes.some(q => q.text === serverQuote.text);
       if (!exists) {
-        merged.push(serverQuote);
+        quotes.push(serverQuote);
         conflictsResolved++;
       }
     });
 
+    saveQuotes();
+    populateCategories();
+    filterQuotes();
+
     if (conflictsResolved > 0) {
-      quotes = merged;
-      saveQuotes();
-      populateCategories();
-      filterQuotes();
       showNotification(` Synced ${conflictsResolved} new quote(s) from server.`);
     } else {
-      showNotification(" No new updates from server.");
+      showNotification(" No new quotes from server.");
     }
+
+    await postQuotesToServer(quotes);
+
   } catch (err) {
-    console.error("Sync failed:", err);
-    showNotification("⚠ Failed to sync with server.");
+    console.error("Sync error:", err);
+    showNotification("⚠ Sync failed. Try again.");
   }
 }
 
-//  Auto sync every 60s
-setInterval(syncWithServer, 60000);
-
-//  Initial Setup
+//  Event listeners and setup
 newQuoteBtn.addEventListener("click", showRandomQuote);
 populateCategories();
-syncWithServer();
+syncQuotes();
+setInterval(syncQuotes, 60000);
