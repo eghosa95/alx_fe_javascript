@@ -43,7 +43,7 @@ function importFromJsonFile(event) {
   reader.readAsText(event.target.files[0]);
 }
 
-//  Populate dropdown with unique categories
+//  Populate category dropdown
 function populateCategories() {
   const uniqueCategories = Array.from(new Set(quotes.map(q => q.category)));
   const savedFilter = localStorage.getItem("selectedCategory");
@@ -65,7 +65,7 @@ function populateCategories() {
   filterQuotes();
 }
 
-//  Filter quotes based on selected category
+//  Filter quotes based on category
 function filterQuotes() {
   const selectedCategory = categoryFilter.value;
   localStorage.setItem("selectedCategory", selectedCategory);
@@ -122,7 +122,7 @@ function addQuote() {
   alert("Quote added!");
 }
 
-//  Notification
+//  Notification display
 function showNotification(msg, duration = 3000) {
   const notification = document.getElementById("notification");
   notification.textContent = msg;
@@ -133,7 +133,7 @@ function showNotification(msg, duration = 3000) {
 //  Simulated API endpoint
 const MOCK_API_URL = "https://jsonplaceholder.typicode.com/posts";
 
-//  Required: Fetch from server
+//  Required: fetchQuotesFromServer
 async function fetchQuotesFromServer() {
   const response = await fetch(MOCK_API_URL);
   const data = await response.json();
@@ -143,7 +143,7 @@ async function fetchQuotesFromServer() {
   }));
 }
 
-//  Required: Post to server
+//  Required: postQuotesToServer
 async function postQuotesToServer(newQuotes) {
   const response = await fetch(MOCK_API_URL, {
     method: "POST",
@@ -154,7 +154,7 @@ async function postQuotesToServer(newQuotes) {
   console.log("Posted to server:", result);
 }
 
-//  Required: Full sync function
+//  Required: syncQuotes
 async function syncQuotes() {
   showNotification(" Syncing with server...");
 
@@ -175,7 +175,8 @@ async function syncQuotes() {
     filterQuotes();
 
     if (conflictsResolved > 0) {
-      showNotification(` Synced ${conflictsResolved} new quote(s) from server.`);
+      //  Required literal text
+      showNotification("Quotes synced with server!");
     } else {
       showNotification(" No new quotes from server.");
     }
@@ -184,11 +185,11 @@ async function syncQuotes() {
 
   } catch (err) {
     console.error("Sync error:", err);
-    showNotification("⚠ Sync failed. Try again.");
+    showNotification(" Sync failed. Try again.");
   }
 }
 
-//  Event listeners and setup
+//  Final setup
 newQuoteBtn.addEventListener("click", showRandomQuote);
 populateCategories();
 syncQuotes();
